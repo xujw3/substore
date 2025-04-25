@@ -42,11 +42,12 @@ RUN chmod 755 -R /opt/app \
     && apk del unzip \
     && rm -rf /var/cache/apk/*
 
-# 设置运行时配置的环境变量
+# 设置运行时配置的环境变量 - 修复了可能导致错误的环境变量配置
 ENV SUB_STORE_BACKEND_API_HOST=:: \
     SUB_STORE_FRONTEND_HOST=:: \
     SUB_STORE_FRONTEND_PORT=7860 \
     SUB_STORE_BACKEND_MERGE=true \
+    SUB_STORE_FRONTEND_BACKEND_PATH="/" \
     SUB_STORE_FRONTEND_PATH=/opt/app/frontend \
     SUB_STORE_DATA_BASE_PATH=/opt/app/data \
     SUB_STORE_MMDB_COUNTRY_PATH=/opt/app/data/GeoLite2-Country.mmdb \
@@ -55,7 +56,7 @@ ENV SUB_STORE_BACKEND_API_HOST=:: \
     HOST=:: \
     PORT=9876
 
-# 使用 ENTRYPOINT 脚本以获得更好的信号处理
+# 创建启动脚本
 COPY --chmod=755 <<'EOF' /opt/app/entrypoint.sh
 #!/bin/sh
 cd /opt/app/data
@@ -67,4 +68,4 @@ EOF
 ENTRYPOINT ["/opt/app/entrypoint.sh"]
 
 # 暴露端口
-EXPOSE 7860
+EXPOSE 7860 9876
