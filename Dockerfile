@@ -35,4 +35,4 @@ RUN chmod 777 -R /opt/app
 
 CMD mkdir -p /opt/app/data; cd /opt/app/data; \
   META_FOLDER=/opt/app/data HOST=:: PORT=9876 node /opt/app/http-meta.bundle.js > /opt/app/data/http-meta.log 2>&1 & echo "HTTP-META is running..."; \
-  SUB_STORE_BACKEND_API_HOST=:: SUB_STORE_FRONTEND_HOST=:: SUB_STORE_FRONTEND_PORT=7860 SUB_STORE_FRONTEND_PATH=/opt/app/frontend SUB_STORE_DATA_BASE_PATH=/opt/app/data SUB_STORE_MMDB_COUNTRY_PATH=/opt/app/data/GeoLite2-Country.mmdb SUB_STORE_MMDB_ASN_PATH=/opt/app/data/GeoLite2-ASN.mmdb node /opt/app/sub-store.bundle.js
+  SUB_STORE_BACKEND_API_HOST=:: SUB_STORE_FRONTEND_HOST=:: SUB_STORE_FRONTEND_PORT=3000 SUB_STORE_BACKEND_MERGE=true SUB_STORE_FRONTEND_PATH=/opt/app/frontend SUB_STORE_DATA_BASE_PATH=/opt/app/data SUB_STORE_MMDB_COUNTRY_PATH=/opt/app/data/GeoLite2-Country.mmdb SUB_STORE_MMDB_ASN_PATH=/opt/app/data/GeoLite2-ASN.mmdb node /opt/app/sub-store.bundle.js
