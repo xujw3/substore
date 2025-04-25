@@ -45,7 +45,7 @@ RUN chmod 755 -R /opt/app \
 # 设置运行时配置的环境变量 - 修复了可能导致错误的环境变量配置
 ENV SUB_STORE_BACKEND_API_HOST=:: \
     SUB_STORE_FRONTEND_HOST=:: \
-    SUB_STORE_FRONTEND_PORT=7860 \
+    SUB_STORE_FRONTEND_PORT=3000 \
     SUB_STORE_BACKEND_MERGE=true \
     SUB_STORE_FRONTEND_BACKEND_PATH="/" \
     SUB_STORE_FRONTEND_PATH=/opt/app/frontend \
@@ -68,4 +68,4 @@ EOF
 ENTRYPOINT ["/opt/app/entrypoint.sh"]
 
 # 暴露端口
-EXPOSE 7860 9876
+EXPOSE 3000
