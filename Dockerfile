@@ -1,38 +1,48 @@
-FROM alpine
+# 基于官方 Node.js 镜像
+FROM node:18-alpine
 
-WORKDIR /opt/app
+# 设置工作目录
+WORKDIR /app
 
-RUN apk add --no-cache nodejs curl tzdata
+# 安装git和必要的构建工具
+RUN apk add --no-cache git curl bash
 
-ENV TIME_ZONE=Asia/Shanghai 
+# 克隆 Sub-Store 仓库
+RUN git clone https://github.com/sub-store-org/Sub-Store.git .
 
-RUN cp /usr/share/zoneinfo/$TIME_ZONE /etc/localtime && echo $TIME_ZONE > /etc/timezone
+# 安装后端依赖并构建
+WORKDIR /app/backend
+RUN npm install
 
-# RUN apk del tzdata # BUG: https://github.com/gliderlabs/docker-alpine/issues/136#issuecomment-612751142
-# 2
-ADD https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js /opt/app/sub-store.bundle.js
+# 安装前端依赖并构建
+WORKDIR /app/frontend
+RUN npm install && \
+    npm run build
 
-ADD https://github.com/sub-store-org/Sub-Store-Front-End/releases/latest/download/dist.zip /opt/app/dist.zip
+# 将前端构建产物复制到后端的public目录
+RUN mkdir -p /app/backend/public && \
+    cp -r dist/* /app/backend/public/
 
-RUN unzip dist.zip; mv dist frontend; rm dist.zip
+# 设置工作目录回到后端
+WORKDIR /app/backend
 
-ADD https://github.com/xream/http-meta/releases/latest/download/http-meta.bundle.js /opt/app/http-meta.bundle.js
+# 设置环境变量
+ENV PORT=3000
+ENV HOST=0.0.0.0
+ENV SERVE_STATIC=true
+ENV STATIC_PATH=/app/backend/public
 
-ADD https://github.com/xream/http-meta/releases/latest/download/tpl.yaml /opt/app/data/tpl.yaml
+# 暴露端口
+EXPOSE 3000
 
-ADD https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-Country.mmdb /opt/app/data/GeoLite2-Country.mmdb
+# 设置健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
 
-ADD https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-ASN.mmdb /opt/app/data/GeoLite2-ASN.mmdb
+# 运行应用
+CMD ["npm", "start"]
 
-RUN version=$(curl -s -L --connect-timeout 5 --max-time 10 --retry 2 --retry-delay 0 --retry-max-time 20 'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt') && \
-  arch=$(arch | sed s/aarch64/arm64/ | sed s/x86_64/amd64-compatible/) && \
-  url="https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/mihomo-linux-$arch-$version.gz" && \
-  curl -s -L --connect-timeout 5 --max-time 10 --retry 2 --retry-delay 0 --retry-max-time 20 "$url" -o /opt/app/data/http-meta.gz && \
-  gunzip /opt/app/data/http-meta.gz && \
-  rm -rf /opt/app/data/http-meta.gz
-
-RUN chmod 777 -R /opt/app
-
-CMD mkdir -p /opt/app/data; cd /opt/app/data; \
-  META_FOLDER=/opt/app/data HOST=:: PORT=9876 node /opt/app/http-meta.bundle.js > /opt/app/data/http-meta.log 2>&1 & echo "HTTP-META is running..."; \
-  SUB_STORE_BACKEND_API_HOST=:: SUB_STORE_FRONTEND_HOST=:: SUB_STORE_FRONTEND_PORT=7680 SUB_STORE_BACKEND_MERGE=true SUB_STORE_FRONTEND_PATH=/opt/app/frontend SUB_STORE_DATA_BASE_PATH=/opt/app/data SUB_STORE_MMDB_COUNTRY_PATH=/opt/app/data/GeoLite2-Country.mmdb SUB_STORE_MMDB_ASN_PATH=/opt/app/data/GeoLite2-ASN.mmdb node /opt/app/sub-store.bundle.js
+# 添加元数据
+LABEL maintainer="Your Name <your.email@example.com>"
+LABEL description="Sub-Store - A subscription manager with frontend and backend on the same port"
+LABEL version="1.0"
