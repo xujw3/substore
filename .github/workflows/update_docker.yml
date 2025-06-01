@@ -1,0 +1,53 @@
+name: 更新 Sub-Store Docker 镜像
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天午夜 UTC 时间运行
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  update-dockerfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 迁出代码仓库
+        uses: actions/checkout@v4
+
+      - name: 从 Docker Hub 获取最新的 http-meta 标签
+        id: get_tag
+        run: |
+          LATEST_TAG=$(curl -s 'https://hub.docker.com/v2/repositories/xream/sub-store/tags/?page_size=100&name=http-meta' | \
+          jq -r '.results | map(select(.name | endswith("-http-meta"))) | .[0].name')
+          if [ -z "$LATEST_TAG" ]; then
+            echo "获取最新的 http-meta 标签失败。"
+            exit 1
+          fi
+          echo "最新的 http-meta 标签: $LATEST_TAG"
+          echo "TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: 更新 Dockerfile
+        id: update_dockerfile
+        run: |
+          CURRENT_TAG=$(grep -oP 'xream/sub-store:\K[^"]+' Dockerfile)
+          NEW_TAG="${{ steps.get_tag.outputs.TAG }}"
+          echo "Dockerfile 中的当前标签: $CURRENT_TAG"
+          echo "从 Docker Hub 获取的新标签: $NEW_TAG"
+
+          if [ "$CURRENT_TAG" != "$NEW_TAG" ] && [ -n "$NEW_TAG" ]; then
+            sed -i "s|xream/sub-store:$CURRENT_TAG|xream/sub-store:$NEW_TAG|g" Dockerfile
+            echo "Dockerfile 已更新为新标签: $NEW_TAG"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "Dockerfile 已是最新版本或新标签无效。"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 如果有更改则提交并推送
+        if: steps.update_dockerfile.outputs.changed == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add Dockerfile
+          git commit -m "更新 sub-store 至版本 ${{ steps.get_tag.outputs.TAG }}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
