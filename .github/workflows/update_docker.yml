@@ -57,7 +57,7 @@ jobs:
 
       - name: 调用 Substore API 更新设置并备份
         # 仅当 Dockerfile 被更改并且推送成功时运行
-        if: steps.update_dockerfile.outputs.changed == 'true' && steps.commit_push.outcome == 'success'
+        # if: steps.update_dockerfile.outputs.changed == 'true' && steps.commit_push.outcome == 'success'
         env:
           # 将你的 Gist Token 存储在仓库的 Secrets 中，并命名为 SUBSTORE_GIST_TOKEN
           SUBSTORE_GIST_TOKEN: ${{ secrets.SUBSTORE_GIST_TOKEN }}
