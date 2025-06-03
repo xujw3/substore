@@ -11,6 +11,14 @@ jobs:
     steps:
       - name: 迁出代码仓库
         uses: actions/checkout@v4
+        with:
+          # 确保后续的 git 命令不会默认使用 GITHUB_TOKEN 的凭证
+          persist-credentials: false
+          # 如果你的 PAT 用户与创建 commit 的用户不同，
+          # 并且你想让 commit 的作者是 github-actions[bot]，
+          # 但推送使用 PAT，那么 fetch-depth: 0 可能有助于避免一些复杂的 git 历史问题，
+          # 但对于简单更新 Dockerfile 可能不是必需的。
+          # fetch-depth: 0
 
       - name: 从 Docker Hub 获取最新的 http-meta 标签
         id: get_tag
@@ -44,11 +52,12 @@ jobs:
       - name: 如果有更改则提交并推送
         if: steps.update_dockerfile.outputs.changed == 'true'
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.REPO_PAT }}@github.com/${{ github.repository }}
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add Dockerfile
           git commit -m "更新 sub-store 至版本 ${{ steps.get_tag.outputs.TAG }}"
-          git push
+          # 在 push 命令中直接使用 PAT 进行认证，并明确指定分支
+          # GITHUB_REF_NAME 会自动获取当前 workflow 运行的分支名，比如 'main'
+          git push https://x-access-token:${{ secrets.REPO_PAT }}@github.com/${{ github.repository }}.git HEAD:refs/heads/${{ github.ref_name }}
         env:
-          REPO_PAT: ${{ secrets.REPO_PAT }} 
+          REPO_PAT: ${{ secrets.REPO_PAT }} # 确保你在仓库 Secrets 中正确设置了 REPO_PAT
