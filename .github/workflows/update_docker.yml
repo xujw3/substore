@@ -44,10 +44,11 @@ jobs:
       - name: 如果有更改则提交并推送
         if: steps.update_dockerfile.outputs.changed == 'true'
         run: |
+          git remote set-url origin https://x-access-token:${{ secrets.REPO_PAT }}@github.com/${{ github.repository }}
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add Dockerfile
           git commit -m "更新 sub-store 至版本 ${{ steps.get_tag.outputs.TAG }}"
           git push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_PAT: ${{ secrets.REPO_PAT }} 
