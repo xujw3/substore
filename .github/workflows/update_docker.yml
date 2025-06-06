@@ -45,7 +45,7 @@ jobs:
 
       - name: 如果有更改则提交并推送
         if: steps.update_dockerfile.outputs.changed == 'true'
-        id: commit_push # 给这个步骤一个id，方便后续判断
+        id: commit_push
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
@@ -56,18 +56,16 @@ jobs:
           REPO_PAT: ${{ secrets.REPO_PAT }}
 
       - name: 调用 Substore API 更新设置并备份
-        # 仅当 Dockerfile 被更改并且推送成功时运行
         if: steps.update_dockerfile.outputs.changed == 'true' && steps.commit_push.outcome == 'success'
         env:
-          # 将你的 Gist Token 存储在仓库的 Secrets 中，并命名为 SUBSTORE_GIST_TOKEN
           SUBSTORE_GIST_TOKEN: ${{ secrets.SUBSTORE_GIST_TOKEN }}
-          # 如果 793652832 也是敏感或可变的，也应设为 secret
-          # SUBSTORE_API_ID: ${{ secrets.SUBSTORE_API_ID }}
+          SUBSTORE_API_ID: ${{ secrets.SUBSTORE_API_ID }} # 注入 API ID Secret
         run: |
-          echo "开始调用 Substore API 更新设置..."
-          # 注意 JSON 数据中的 gistToken 已被替换为环境变量
-          # 如果 SUBSTORE_API_ID 设为了 secret, URL 中的 793652832 也应替换为 ${SUBSTORE_API_ID}
-          curl 'https://sub.xujw.dpdns.org/793652832/api/settings' \
+          echo "等待3分钟，以便服务可能重启或更新..."
+          sleep 180 # 3 分钟 = 180 秒
+
+          echo "开始调用 Substore API 更新设置 (ID: $SUBSTORE_API_ID)..."
+          curl "https://sub.xujw.dpdns.org/${SUBSTORE_API_ID}/api/settings" \
             -X 'PATCH' \
             -H 'accept: application/json, text/plain, */*' \
             -H 'accept-language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6' \
@@ -83,20 +81,19 @@ jobs:
             -H 'sec-fetch-site: same-origin' \
             -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0' \
             --data-raw '{"syncPlatform":"","githubUser":"kingxujw8@gmail.com","gistToken":"'"$SUBSTORE_GIST_TOKEN"'","defaultUserAgent":"","defaultProxy":"","defaultTimeout":"","cacheThreshold":""}' \
-            --fail # 如果 HTTP 状态码表示错误，则 curl 会失败
+            --fail
 
           echo "调用 API 更新设置完成。"
-          echo "开始调用 Substore API 备份数据..."
+          echo "开始调用 Substore API 备份数据 (ID: $SUBSTORE_API_ID)..."
 
-          # 如果 SUBSTORE_API_ID 设为了 secret, URL 中的 793652832 也应替换为 ${SUBSTORE_API_ID}
-          curl 'https://sub.xujw.dpdns.org/793652832/api/utils/backup?action=download' \
+          curl "https://sub.xujw.dpdns.org/${SUBSTORE_API_ID}/api/utils/backup?action=download" \
             -H 'sec-ch-ua-platform: "Windows"' \
             -H 'Referer: https://sub.xujw.dpdns.org/my' \
             -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0' \
             -H 'Accept: application/json, text/plain, */*' \
             -H 'sec-ch-ua: "Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"' \
             -H 'sec-ch-ua-mobile: ?0' \
-            --fail # 如果 HTTP 状态码表示错误，则 curl 会失败
+            --fail
             # 如果你需要保存备份内容到文件: --output backup_data.json
 
           echo "调用 API 备份数据完成。"
