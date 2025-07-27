@@ -1,5 +1,5 @@
 # 直接使用 xream/sub-store 官方镜像
-FROM xream/sub-store:0.0.1-http-meta
+FROM xream/sub-store:2.19.94-http-meta
 
 # 安装必要工具
 RUN apk add --no-cache curl unzip
